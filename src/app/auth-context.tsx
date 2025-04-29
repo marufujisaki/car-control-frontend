@@ -8,7 +8,7 @@ type User = {
   id: string
   name: string
   email: string
-  image?: string
+  picture?: string
 }
 
 type AuthContextType = {
@@ -24,16 +24,12 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 
-
-
-
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const provider = new GoogleAuthProvider();
 
-  // Check if user is already logged in on mount
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user")
     if (storedUser) {
@@ -42,38 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  // Google OAuth login with popup
   const login = async () => {
     setIsLoading(true)
     try {
 
       signInWithPopup(auth, provider).then(async result => {
         const token = await result.user.getIdToken();
-        // Send to your backend
         const res = await fetch('http://localhost:8080/auth/firebase', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
         });
         const data = await res.json();
-        console.log(data);
         setUser(data.user);
         localStorage.setItem("user", JSON.stringify(data.user))
       });
-      // // Simulate Google OAuth popup and login
-      // // In a real app, this would use the Google OAuth API
-      // await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // // Mock user data (in a real app, this would come from Google)
-      // const mockUser = {
-      //   id: "google-" + Math.random().toString(36).substring(2, 11),
-      //   name: "Demo User",
-      //   email: "demo@example.com",
-      //   image: "https://ui-avatars.com/api/?name=Demo+User&background=random",
-      // }
-
-      // setUser(mockUser)
-      // localStorage.setItem("user", JSON.stringify(mockUser))
     } catch (error) {
       console.error("Login failed:", error)
     } finally {

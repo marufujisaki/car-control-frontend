@@ -19,8 +19,8 @@ export function LoginButton() {
     return (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 mr-2">
-          {user.image ? (
-            <img src={user.image || "/placeholder.svg"} alt={user.name} className="w-8 h-8 rounded-full" />
+          {user.picture ? (
+            <img src={user.picture || "/placeholder.svg"} alt={user.name} className="w-8 h-8 rounded-full" />
           ) : null}
           <span className="text-sm font-medium hidden md:inline">{user.name}</span>
         </div>
