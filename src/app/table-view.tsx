@@ -27,6 +27,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,116 +46,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, PlusCircle, Lock } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  PlusCircle,
+  Lock,
+  Edit,
+  AlertTriangle,
+} from "lucide-react";
 import { LoginButton } from "./login-button";
 import { AuthProvider, useAuth } from "./auth-context";
-import { useEffect } from "react";
-import { getUserJobs } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { getUserJobs, deleteJob, updateJob, createJob } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { DatePicker } from "@/components/date-picker";
 
-type Part = {
-  id?: number;
-  job_id?: number;
-  name: string;
-  type: string;
-  cost: number;
-  observations: string;
-};
-
-type Job = {
-  id?: number;
-  name: string;
-  date: string;
-  user_id: string;
-  labor_cost: number;
-  total_cost?: number;
-  general_observations: string;
-  parts: Part[];
-};
-// Sample data in the new format
-const initialJobs: Job[] = [
-  {
-    id: 1,
-    name: "Reparación motor",
-    date: "24/03/2025",
-    user_id: "user1",
-    labor_cost: 195,
-    total_cost: 350,
-    general_observations: "Reparación completa del motor",
-    parts: [
-      {
-        id: 1,
-        job_id: 1,
-        name: "Motor A-123",
-        type: "Reparación",
-        cost: 120,
-        observations: "Cambio de piezas internas",
-      },
-      {
-        id: 2,
-        job_id: 1,
-        name: "Filtro de aceite",
-        type: "Reemplazo",
-        cost: 35,
-        observations: "Reemplazo completo",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Sistema de frenos",
-    date: "22/03/2025",
-    user_id: "user1",
-    labor_cost: 180,
-    total_cost: 420,
-    general_observations: "Reparación del sistema de frenos",
-    parts: [
-      {
-        id: 3,
-        job_id: 2,
-        name: "Frenos C-789",
-        type: "Reemplazo",
-        cost: 150,
-        observations: "Reemplazo de pastillas",
-      },
-      {
-        id: 4,
-        job_id: 2,
-        name: "Discos de freno",
-        type: "Reemplazo",
-        cost: 90,
-        observations: "Reemplazo parcial",
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Sistema eléctrico",
-    date: "20/03/2025",
-    user_id: "user2",
-    labor_cost: 100,
-    total_cost: 290,
-    general_observations: "Revisión del sistema eléctrico",
-    parts: [
-      {
-        id: 5,
-        job_id: 3,
-        name: "Alternador E-345",
-        type: "Reparación",
-        cost: 110,
-        observations: "Cambio de componentes eléctricos",
-      },
-      {
-        id: 6,
-        job_id: 3,
-        name: "Batería",
-        type: "Revisión",
-        cost: 80,
-        observations: "Limpieza de terminales",
-      },
-    ],
-  },
-];
+import {
+  type Job,
+  type JobCreateRequest,
+  type JobUpdateRequest,
+  useJobForm,
+} from "@/hooks/useJobForm";
 
 // Format currency values
 const formatCurrency = (amount: number | null) => {
@@ -153,113 +74,95 @@ const formatCurrency = (amount: number | null) => {
   return `$${amount.toFixed(0)}`;
 };
 
-// Initial form state for a new part
-const emptyPart = {
-  name: "",
-  type: "",
-  cost: 0.0,
-  observations: "",
-};
-
 function TableViewContent() {
   const { user, isLoading } = useAuth();
-  const [jobs, setJobs] = React.useState<Job[]>(initialJobs);
-  const [open, setOpen] = React.useState(false);
-  const [workForm, setWorkForm] = React.useState({
-    name: "",
-    date: "",
-    labor_cost: 0.0,
-    general_observations: "",
-    parts: [{ ...emptyPart }],
-  });
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [open, setOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<number | null>(null);
+
+  // Handle form submission (create or update)
+  const handleFormSubmit = async (
+    data: JobCreateRequest | JobUpdateRequest,
+    isEditing: boolean
+  ) => {
+    try {
+      if (isEditing && "id" in data) {
+        await updateJob(data.id, data);
+      } else {
+        await createJob(data);
+      }
+      // Refresh jobs list
+      await loadJobs();
+      // Close the dialog
+      setOpen(false);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
+  };
+
+  // Initialize the job form hook
+  const {
+    formData,
+    selectedDate,
+    editingJobId,
+    isSubmitting,
+    addPart,
+    removePart,
+    updatePart,
+    handleDateSelect,
+    updateField,
+    resetForm,
+    loadJobForEdit,
+    handleSubmit,
+  } = useJobForm({ onSubmit: handleFormSubmit });
+
+  const loadJobs = async () => {
+    if (!user) return;
+    const jobsData = await getUserJobs(user.id || "");
+    if (jobsData) setJobs(jobsData);
+  };
 
   useEffect(() => {
     if (!user) return;
-    const loadJobs = async () => {
-      const jobsData = await getUserJobs(user?.id || "");
-      if (jobsData) setJobs(jobsData);
-    };
     loadJobs();
   }, [user]);
 
-  // Add a new part to the form
-  const addPart = () => {
-    setWorkForm({
-      ...workForm,
-      parts: [...workForm.parts, { ...emptyPart }],
-    });
+  // Open edit modal for a job
+  const handleEditJob = (job: Job) => {
+    loadJobForEdit(job);
+    setOpen(true);
   };
 
-  // Remove a part from the form
-  const removePart = (index: number) => {
-    const newParts = [...workForm.parts];
-    newParts.splice(index, 1);
-    setWorkForm({
-      ...workForm,
-      parts: newParts,
-    });
-  };
-
-  // Update a part in the form
-  const updatePart = (index: number, field: string, value: string) => {
-    const newParts = [...workForm.parts];
-    newParts[index] = {
-      ...newParts[index],
-      [field]:
-        field === "cost"
-          ? value === ""
-            ? ""
-            : Number.parseFloat(value)
-          : value,
-    };
-    setWorkForm({
-      ...workForm,
-      parts: newParts,
-    });
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    // Create new job with parts
-    const newJob: Job = {
-      name: workForm.name,
-      date: workForm.date,
-      user_id: user.id,
-      labor_cost: workForm.labor_cost,
-      general_observations: workForm.general_observations,
-      parts: workForm.parts.map((part) => ({
-        name: part.name,
-        type: part.type,
-        cost: part.cost,
-        observations: part.observations,
-      })),
-    };
-
-    const res = await fetch("http://localhost:8080/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newJob }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("Error creating job:", data.error);
-      return;
+  // Open delete confirmation for a job
+  const handleDeleteJob = (jobId: number | undefined) => {
+    if (jobId) {
+      setJobToDelete(jobId);
+      setDeleteConfirmOpen(true);
     }
+  };
 
-    //TODO: SEARCH NEW JOBSSSSSSSSSSSSSSS
+  // Confirm deletion of a job
+  const confirmDeleteJob = async () => {
+    if (jobToDelete !== null) {
+      try {
+        await deleteJob(jobToDelete);
+        // Refresh jobs list
+        await loadJobs();
+        setJobToDelete(null);
+        setDeleteConfirmOpen(false);
+      } catch (error) {
+        console.error("Error deleting job:", error);
+      }
+    }
+  };
 
-    setWorkForm({
-      name: "",
-      date: "",
-      labor_cost: 0.0,
-      general_observations: "",
-      parts: [{ ...emptyPart }],
-    });
-    setOpen(false);
+  // Handle dialog close
+  const handleDialogOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      resetForm();
+    }
+    setOpen(isOpen);
   };
 
   // Show login prompt if not authenticated
@@ -298,19 +201,22 @@ function TableViewContent() {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Nuevo Trabajo
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={(e) => handleSubmit(e, user?.id || "")}>
                 <DialogHeader>
-                  <DialogTitle>Agregar Nuevo Trabajo</DialogTitle>
+                  <DialogTitle>
+                    {editingJobId ? "Editar Trabajo" : "Agregar Nuevo Trabajo"}
+                  </DialogTitle>
                   <DialogDescription>
-                    Complete los detalles del trabajo y agregue las piezas
-                    necesarias.
+                    {editingJobId
+                      ? "Modifique los detalles del trabajo y sus piezas."
+                      : "Complete los detalles del trabajo y agregue las piezas necesarias."}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -319,25 +225,17 @@ function TableViewContent() {
                       <Label htmlFor="name">Nombre del Trabajo</Label>
                       <Input
                         id="name"
-                        value={workForm.name}
-                        onChange={(e) =>
-                          setWorkForm({ ...workForm, name: e.target.value })
-                        }
+                        value={formData.name}
+                        onChange={(e) => updateField("name", e.target.value)}
                         placeholder="Ej: Reparación de motor"
                         required
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="date">Fecha</Label>
-                      <Input
-                        id="date"
-                        type="text"
-                        value={workForm.date}
-                        onChange={(e) =>
-                          setWorkForm({ ...workForm, date: e.target.value })
-                        }
-                        placeholder="DD/MM/AAAA"
-                        required
+                      <DatePicker
+                        date={selectedDate}
+                        onSelect={handleDateSelect}
                       />
                     </div>
                   </div>
@@ -355,14 +253,14 @@ function TableViewContent() {
                       </Button>
                     </div>
 
-                    {workForm.parts.map((part, index) => (
+                    {formData.parts.map((part, index) => (
                       <div
                         key={index}
                         className="space-y-4 p-4 border rounded-md bg-slate-50"
                       >
                         <div className="flex justify-between items-center">
                           <h4 className="font-medium">Pieza #{index + 1}</h4>
-                          {workForm.parts.length > 1 && (
+                          {formData.parts.length > 1 && (
                             <Button
                               type="button"
                               variant="ghost"
@@ -457,32 +355,48 @@ function TableViewContent() {
                     ))}
                   </div>
 
-                  <div className="space-y-2 mt-4">
-                    <Label htmlFor="labor_cost">Costo de Mano de Obra</Label>
-                    <Input
-                      id="labor_cost"
-                      type="number"
-                      value={workForm.labor_cost}
-                      onChange={(e) =>
-                        setWorkForm({
-                          ...workForm,
-                          labor_cost: Number(e.target.value),
-                        })
-                      }
-                      placeholder="$"
-                      required
-                    />
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="labor_cost">Costo de Mano de Obra</Label>
+                      <Input
+                        id="labor_cost"
+                        type="number"
+                        value={formData.labor_cost}
+                        onChange={(e) => updateField("labor_cost", Number(e.target.value))}
+                        placeholder="$"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="generalObservations">
+                        Observaciones Generales
+                      </Label>
+                      <Input
+                        id="generalObservations"
+                        value={formData.generalObservations}
+                        onChange={(e) => updateField("generalObservations", e.target.value)}
+                        placeholder="Observaciones sobre el trabajo completo"
+                      />
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setOpen(false)}
+                    onClick={resetForm}
+                    disabled={isSubmitting}
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit">Guardar Trabajo</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting
+                      ? "Guardando..."
+                      : editingJobId
+                      ? "Actualizar"
+                      : "Guardar"}{" "}
+                    Trabajo
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -508,6 +422,7 @@ function TableViewContent() {
                     Costo de Trabajo
                   </TableHead>
                   <TableHead className="font-semibold">Observaciones</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -528,6 +443,7 @@ function TableViewContent() {
                         <TableCell className="text-slate-600">
                           {part.observations}
                         </TableCell>
+                        <TableCell></TableCell>
                       </TableRow>
                     ))}
 
@@ -556,17 +472,50 @@ function TableViewContent() {
                           job.total_cost ? Number(job.total_cost) : 0
                         )}
                       </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditJob(job)}
+                            className="h-8 w-8"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
 
                     {/* Add separator between jobs */}
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={7}
                         className="h-2 p-0 bg-slate-50"
                       ></TableCell>
                     </TableRow>
                   </React.Fragment>
                 ))}
+                {jobs.length > 0 && (
+                  <TableRow className="bg-slate-200 border-t-2 border-slate-400 font-bold">
+                    <TableCell colSpan={4} className="text-right">
+                      Total de todos los trabajos:
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(
+                        jobs.reduce((sum, job) => sum + (job.total_cost ? Number(job.total_cost) : 0), 0),
+                      )}
+                    </TableCell>
+                    <TableCell colSpan={2}></TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
@@ -579,6 +528,31 @@ function TableViewContent() {
           </div>
         )}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirmar eliminación
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar este trabajo? Esta acción no
+              se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteJob}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
