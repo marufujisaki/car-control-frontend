@@ -56,9 +56,9 @@ import {
 } from "lucide-react";
 import { LoginButton } from "./login-button";
 import { AuthProvider, useAuth } from "./auth-context";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getUserJobs, deleteJob, updateJob, createJob } from "@/lib/api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, parseDate } from "@/lib/utils";
 import { DatePicker } from "@/components/date-picker";
 
 import {
@@ -80,6 +80,15 @@ function TableViewContent() {
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<number | null>(null);
+
+  // Sort jobs by date in ascending order
+  const sortedJobs = useMemo(() => {
+    return [...jobs].sort((a, b) => {
+      const dateA = parseDate(a.date);
+      const dateB = parseDate(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [jobs]);
 
   // Handle form submission (create or update)
   const handleFormSubmit = async (
@@ -165,6 +174,11 @@ function TableViewContent() {
     setOpen(isOpen);
   };
 
+  const cancelForm = () => {
+    resetForm();
+    setOpen(false);
+  };
+
   // Show login prompt if not authenticated
   if (!user) {
     return (
@@ -203,7 +217,7 @@ function TableViewContent() {
         <div className="flex items-center gap-2">
           <Dialog open={open} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="cursor-pointer">
                 <Plus className="mr-2 h-4 w-4" /> Nuevo Trabajo
               </Button>
             </DialogTrigger>
@@ -248,6 +262,7 @@ function TableViewContent() {
                         variant="outline"
                         size="sm"
                         onClick={addPart}
+                        className="cursor-pointer"
                       >
                         <PlusCircle className="mr-2 h-4 w-4" /> Agregar Pieza
                       </Button>
@@ -266,6 +281,7 @@ function TableViewContent() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removePart(index)}
+                              className="h-8 w-8 cursor-pointer"
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -322,16 +338,29 @@ function TableViewContent() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor={`cost-${index}`}>Costo</Label>
-                            <Input
-                              id={`cost-${index}`}
-                              type="number"
-                              value={part.cost}
-                              onChange={(e) =>
-                                updatePart(index, "cost", e.target.value)
-                              }
-                              placeholder="$"
-                              required
-                            />
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                                $
+                              </span>
+                              <Input
+                                id={`cost-${index}`}
+                                type="text"
+                                value={part.cost === 0 ? "" : part.cost}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === "" || /^\d*$/.test(value)) {
+                                    updatePart(
+                                      index,
+                                      "cost",
+                                      value === "" ? "0" : value
+                                    );
+                                  }
+                                }}
+                                className="pl-7"
+                                placeholder="10"
+                                required
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor={`observations-${index}`}>
@@ -358,14 +387,30 @@ function TableViewContent() {
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
                       <Label htmlFor="labor_cost">Costo de Mano de Obra</Label>
-                      <Input
-                        id="labor_cost"
-                        type="number"
-                        value={formData.labor_cost}
-                        onChange={(e) => updateField("labor_cost", Number(e.target.value))}
-                        placeholder="$"
-                        required
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                          $
+                        </span>
+                        <Input
+                          id="labor_cost"
+                          type="text"
+                          value={
+                            formData.labor_cost === 0 ? "" : formData.labor_cost
+                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "" || /^\d*$/.test(value)) {
+                              updateField(
+                                "labor_cost",
+                                value === "" ? 0 : Number(value)
+                              );
+                            }
+                          }}
+                          className="pl-7"
+                          placeholder="10"
+                          required
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="generalObservations">
@@ -374,7 +419,9 @@ function TableViewContent() {
                       <Input
                         id="generalObservations"
                         value={formData.generalObservations}
-                        onChange={(e) => updateField("generalObservations", e.target.value)}
+                        onChange={(e) =>
+                          updateField("generalObservations", e.target.value)
+                        }
                         placeholder="Observaciones sobre el trabajo completo"
                       />
                     </div>
@@ -384,12 +431,17 @@ function TableViewContent() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={resetForm}
+                    className="cursor-pointer"
+                    onClick={cancelForm}
                     disabled={isSubmitting}
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button
+                    type="submit"
+                    className="cursor-pointer"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting
                       ? "Guardando..."
                       : editingJobId
@@ -405,7 +457,7 @@ function TableViewContent() {
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        {jobs.length > 0 ? (
+        {sortedJobs.length > 0 ? (
           <div className="rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
@@ -426,7 +478,7 @@ function TableViewContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.map((job) => (
+                {sortedJobs.map((job) => (
                   <React.Fragment key={`job-${job.id}`}>
                     {/* Render parts rows */}
                     {job.parts.map((part) => (
@@ -478,7 +530,7 @@ function TableViewContent() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditJob(job)}
-                            className="h-8 w-8"
+                            className="h-8 w-8 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -486,7 +538,7 @@ function TableViewContent() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteJob(job.id)}
-                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="h-8 w-8 cursor-pointer text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -503,14 +555,18 @@ function TableViewContent() {
                     </TableRow>
                   </React.Fragment>
                 ))}
-                {jobs.length > 0 && (
+                {sortedJobs.length > 0 && (
                   <TableRow className="bg-slate-200 border-t-2 border-slate-400 font-bold">
                     <TableCell colSpan={4} className="text-right">
                       Total de todos los trabajos:
                     </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(
-                        jobs.reduce((sum, job) => sum + (job.total_cost ? Number(job.total_cost) : 0), 0),
+                        sortedJobs.reduce(
+                          (sum, job) =>
+                            sum + (job.total_cost ? Number(job.total_cost) : 0),
+                          0
+                        )
                       )}
                     </TableCell>
                     <TableCell colSpan={2}></TableCell>
