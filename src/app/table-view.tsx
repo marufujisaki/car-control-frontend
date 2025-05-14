@@ -135,6 +135,7 @@ function TableViewContent() {
   useEffect(() => {
     if (!user) return;
     loadJobs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Open edit modal for a job

@@ -21,7 +21,7 @@ export async function getUserJobs(userId: string) {
   }
 }
 
-export async function createJob(jobData: any) {
+export async function createJob(jobData: unknown) {
   try {
     const response = await fetch(`${serverUrl}/jobs`, {
       method: "POST",
@@ -41,7 +41,7 @@ export async function createJob(jobData: any) {
   }
 }
 
-export async function updateJob(jobId: number, jobData: any) {
+export async function updateJob(jobId: number, jobData: unknown) {
   try {
     const response = await fetch(`${serverUrl}/jobs/${jobId}`, {
       method: "PUT",
