@@ -1,6 +1,8 @@
+export const serverUrl = "https://car-control-api.onrender.com";
+
 export async function getUserJobs(userId: string) {
   try {
-    const res = await fetch(`http://localhost:8080/jobs/${userId}`, {
+    const res = await fetch(`${serverUrl}/jobs/${userId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -21,7 +23,7 @@ export async function getUserJobs(userId: string) {
 
 export async function createJob(jobData: any) {
   try {
-    const response = await fetch("http://localhost:8080/jobs", {
+    const response = await fetch(`${serverUrl}/jobs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(jobData),
@@ -41,7 +43,7 @@ export async function createJob(jobData: any) {
 
 export async function updateJob(jobId: number, jobData: any) {
   try {
-    const response = await fetch(`http://localhost:8080/jobs/${jobId}`, {
+    const response = await fetch(`${serverUrl}/jobs/${jobId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(jobData),
@@ -61,7 +63,7 @@ export async function updateJob(jobId: number, jobData: any) {
 
 export async function deleteJob(jobId: number) {
   try {
-    const res = await fetch(`http://localhost:8080/jobs/${jobId}`, {
+    const res = await fetch(`${serverUrl}/jobs/${jobId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

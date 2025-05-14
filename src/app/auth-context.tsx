@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { serverUrl } from "@/lib/api"
 
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       signInWithPopup(auth, provider).then(async result => {
         const token = await result.user.getIdToken();
-        const res = await fetch('http://localhost:8080/auth/firebase', {
+        const res = await fetch(`${serverUrl}/auth/firebase`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
