@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useAuth } from "./auth-context";
+import { useAuth } from "@/context/auth-context";
 import { LogIn, LogOut } from "lucide-react";
 
 export function LoginButton() {

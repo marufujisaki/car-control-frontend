@@ -1,8 +1,10 @@
-export const serverUrl = "https://car-control-api.onrender.com";
+//export const serverUrl = "https://car-control-api.onrender.com";
+export const serverUrl = "http://localhost:8080";
 
-export async function getUserJobs(userId: string) {
+
+export async function getUserJobs(vehicleId: string) {
   try {
-    const res = await fetch(`${serverUrl}/jobs/${userId}`, {
+    const res = await fetch(`${serverUrl}/jobs/${vehicleId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -81,3 +83,76 @@ export async function deleteJob(jobId: number) {
     return null;
   }
 }
+
+// Add vehicle API functions
+
+export async function getVehicles(userId: string) {
+  try {
+    const response = await fetch(`${serverUrl}/vehicles/${userId}`)
+    if (!response.ok) {
+      throw new Error("Failed to fetch vehicles")
+    }
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching vehicles:", error)
+    return null
+  }
+}
+
+export async function createVehicle(vehicleData: unknown) {
+  try {
+    const response = await fetch(`${serverUrl}/vehicles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(vehicleData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Failed to create vehicle")
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error creating vehicle:", error)
+    throw error
+  }
+}
+
+export async function updateVehicle(vehicleId: string, vehicleData: unknown) {
+  try {
+    const response = await fetch(`${serverUrl}/vehicles/${vehicleId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(vehicleData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Failed to update vehicle")
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error updating vehicle:", error)
+    throw error
+  }
+}
+
+export async function deleteVehicle(vehicleId: string) {
+  try {
+    const response = await fetch(`${serverUrl}/vehicles/${vehicleId}`, {
+      method: "DELETE",
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to delete vehicle")
+    }
+
+    return true
+  } catch (error) {
+    console.error("Error deleting vehicle:", error)
+    throw error
+  }
+}
+

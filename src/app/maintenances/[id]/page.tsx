@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -54,12 +53,12 @@ import {
   Edit,
   AlertTriangle,
 } from "lucide-react";
-import { LoginButton } from "./login-button";
-import { AuthProvider, useAuth } from "./auth-context";
+import { LoginButton } from "@/components/login-button";
+import { useAuth } from "@/context/auth-context";
 import { useEffect, useMemo, useState } from "react";
 import { getUserJobs, deleteJob, updateJob, createJob } from "@/lib/api";
 import { formatDate, parseDate } from "@/lib/utils";
-import { DatePicker } from "@/components/date-picker";
+import { DatePicker } from "@/components/ui/date-picker";
 
 import {
   type Job,
@@ -67,6 +66,8 @@ import {
   type JobUpdateRequest,
   useJobForm,
 } from "@/hooks/useJobForm";
+import { useParams } from "next/navigation";
+import { Header } from "@/components/shared/header/header";
 
 // Format currency values
 const formatCurrency = (amount: number | null) => {
@@ -74,8 +75,10 @@ const formatCurrency = (amount: number | null) => {
   return `$${amount.toFixed(0)}`;
 };
 
-function TableViewContent() {
+export default function TableViewContent() {
   const { user, isLoading } = useAuth();
+  const params = useParams();
+  const vehicleId = params.id as string;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -127,7 +130,7 @@ function TableViewContent() {
   } = useJobForm({ onSubmit: handleFormSubmit });
 
   const loadJobs = async () => {
-    if (!user) return;
+    if (!user || !vehicleId) return;
     const jobsData = await getUserJobs(user.id || "");
     if (jobsData) setJobs(jobsData);
   };
@@ -135,8 +138,8 @@ function TableViewContent() {
   useEffect(() => {
     if (!user) return;
     loadJobs();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, vehicleId]);
 
   // Open edit modal for a job
   const handleEditJob = (job: Job) => {
@@ -190,7 +193,7 @@ function TableViewContent() {
         <h2 className="text-2xl font-bold mb-2">Acceso Restringido</h2>
         <p className="text-slate-500 mb-6 max-w-md">
           Inicia sesión con tu cuenta de Google para ver y gestionar tus
-          trabajos.
+          mantenimientos.
         </p>
         <LoginButton />
       </div>
@@ -208,6 +211,7 @@ function TableViewContent() {
 
   return (
     <>
+      <Header />
       <CardHeader className="bg-slate-50 flex flex-row items-center justify-between">
         <div>
           <CardTitle>Registro de Trabajos</CardTitle>
@@ -454,7 +458,6 @@ function TableViewContent() {
               </form>
             </DialogContent>
           </Dialog>
-          <LoginButton />
         </div>
       </CardHeader>
       <CardContent className="p-4">
@@ -611,15 +614,5 @@ function TableViewContent() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-export default function TableView() {
-  return (
-    <AuthProvider>
-      <Card className="w-full border shadow">
-        <TableViewContent />
-      </Card>
-    </AuthProvider>
   );
 }
