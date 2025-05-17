@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createVehicle } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +35,7 @@ interface AddVehicleFormProps {
   buttonIcon?: boolean;
   className?: string;
   isFloatingButton?: boolean;
+  onSuccess: () => void
 }
 
 export function AddVehicleForm({
@@ -45,8 +45,8 @@ export function AddVehicleForm({
   buttonIcon = true,
   className,
   isFloatingButton = false,
+  onSuccess
 }: AddVehicleFormProps) {
-  const router = useRouter();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,7 +97,7 @@ export function AddVehicleForm({
 
       // Close modal and refresh
       setOpen(false);
-      router.refresh();
+      onSuccess();
 
       // Reset form
       setFormData({

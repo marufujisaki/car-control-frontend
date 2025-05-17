@@ -53,6 +53,7 @@ export default function Dashboard() {
 
   const handleDeleteVehicle = (id: string) => {
     deleteVehicle(id);
+    loadVehicles();
   };
 
 
@@ -107,14 +108,14 @@ export default function Dashboard() {
         ) : (
           <div className="flex h-full flex-col items-center justify-center">
             <p className="mb-4 text-center text-lg">No vehicles found</p>
-            <AddVehicleForm />
+            <AddVehicleForm onSuccess={loadVehicles} />
           </div>
         )}
       </main>
 
       {vehicles.length > 0 && (
         <div className="fixed bottom-6 right-6">
-          <AddVehicleForm />
+          <AddVehicleForm onSuccess={loadVehicles} />
         </div>
       )}
     </div>
