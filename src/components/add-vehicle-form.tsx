@@ -1,0 +1,256 @@
+"use client";
+
+import type React from "react";
+
+import { useState } from "react";
+import { createVehicle } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Loader2, Plus } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
+import { ColorSelector } from "./shared/color-selector/color-selector";
+
+const colorOptions = [
+  { value: "blue", label: "Blue", className: "bg-blue-500" },
+  { value: "purple", label: "Purple", className: "bg-purple-500" },
+  { value: "pink", label: "Pink", className: "bg-pink-500" },
+  { value: "green", label: "Green", className: "bg-green-500" },
+  { value: "orange", label: "Orange", className: "bg-orange-500" },
+];
+
+interface AddVehicleFormProps {
+  buttonVariant?: "default" | "outline" | "secondary" | "ghost" | "link";
+  buttonSize?: "default" | "sm" | "lg" | "icon";
+  buttonText?: string;
+  buttonIcon?: boolean;
+  className?: string;
+  isFloatingButton?: boolean;
+  onSuccess: () => void
+}
+
+export function AddVehicleForm({
+  buttonVariant = "default",
+  buttonSize = "default",
+  buttonText = "Add Vehicle",
+  buttonIcon = true,
+  className,
+  isFloatingButton = false,
+  onSuccess
+}: AddVehicleFormProps) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    make: "",
+    model: "",
+    year: new Date().getFullYear(),
+    licensePlate: "",
+    color: "",
+    category: "blue",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        name === "year"
+          ? value === ""
+            ? ""
+            : Number.parseInt(value, 10)
+          : value,
+    }));
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setFormData((prev) => ({ ...prev, category }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIsSubmitting(true);
+    try {
+      // Validate form
+      if (!formData.make || !formData.model || !formData.licensePlate) {
+        alert("Please fill in all required fields");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create vehicle
+      await createVehicle({
+        ...formData,
+        userId: user.id,
+      });
+
+      // Close modal and refresh
+      setOpen(false);
+      onSuccess();
+
+      // Reset form
+      setFormData({
+        make: "",
+        model: "",
+        year: new Date().getFullYear(),
+        licensePlate: "",
+        color: "",
+        category: "blue",
+      });
+    } catch (error) {
+      console.error("Error creating vehicle:", error);
+      alert("Failed to create vehicle. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const buttonContent = (
+    <>
+      {buttonIcon && <Plus className={`${buttonText ? "mr-2" : ""} h-4 w-4`} />}
+      {buttonText && <span>{buttonText}</span>}
+    </>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {isFloatingButton ? (
+          <Button size="lg" className="h-14 w-14 rounded-full shadow-lg">
+            <Plus className="h-6 w-6" />
+            <span className="sr-only">Add Vehicle</span>
+          </Button>
+        ) : (
+          <Button
+            variant={buttonVariant}
+            size={buttonSize}
+            className={className}
+          >
+            {buttonContent}
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Add New Vehicle</DialogTitle>
+            <DialogDescription>
+              Enter the details of your vehicle below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="make" className="text-right">
+                  Manufacturer <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="make"
+                  name="make"
+                  value={formData.make}
+                  onChange={handleChange}
+                  placeholder="e.g. Toyota"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="model" className="text-right">
+                  Model <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="model"
+                  name="model"
+                  value={formData.model}
+                  onChange={handleChange}
+                  placeholder="e.g. Corolla"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="year" className="text-right">
+                  Year
+                </Label>
+                <Input
+                  id="year"
+                  name="year"
+                  type="number"
+                  min="1900"
+                  max={new Date().getFullYear() + 1}
+                  value={formData.year}
+                  onChange={handleChange}
+                  placeholder="e.g. 2020"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="licensePlate" className="text-right">
+                  License Plate <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="licensePlate"
+                  name="licensePlate"
+                  value={formData.licensePlate}
+                  onChange={handleChange}
+                  placeholder="e.g. ABC123"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="color" className="text-right">
+                Color
+              </Label>
+              <Input
+                id="color"
+                name="color"
+                value={formData.color}
+                onChange={handleChange}
+                placeholder="e.g. Red"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-right">Category Color</Label>
+              <ColorSelector
+                value={formData.category}
+                onChange={handleCategoryChange}
+                options={colorOptions}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Vehicle"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -26,7 +26,7 @@ export type JobFormData = {
 export type JobCreateRequest = {
   name: string
   date: string
-  userId: string
+  vehicleId: string
   laborCost: number
   generalObservations: string
   parts: Omit<JobFormPart, "id" | "job_id">[]
@@ -36,7 +36,7 @@ export type JobUpdateRequest = {
   id: number
   name: string
   date: string
-  userId: string
+  vehicleId: string
   laborCost: number
   generalObservations: string
   parts: (Omit<JobFormPart, "job_id"> & { id?: number })[]
@@ -47,7 +47,7 @@ export type Job = {
   id?: number
   name: string
   date: string
-  user_id: string
+  vehicle_id: string
   labor_cost: number
   total_cost?: number
   general_observations: string
@@ -195,7 +195,7 @@ export function useJobForm({ onSubmit }: UseJobFormProps) {
   }
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent, userId: string) => {
+  const handleSubmit = async (e: React.FormEvent, vehicleId: string) => {
     e.preventDefault()
 
     // Validate date
@@ -214,7 +214,7 @@ export function useJobForm({ onSubmit }: UseJobFormProps) {
           id: editingJobId,
           name: formData.name,
           date: formData.date,
-          userId: userId,
+          vehicleId: vehicleId,
           laborCost: formData.labor_cost,
           generalObservations: formData.generalObservations,
           parts: formData.parts.map((part) => ({
@@ -231,7 +231,7 @@ export function useJobForm({ onSubmit }: UseJobFormProps) {
         const createRequest: JobCreateRequest = {
           name: formData.name,
           date: formData.date,
-          userId: userId,
+          vehicleId: vehicleId,
           laborCost: formData.labor_cost,
           generalObservations: formData.generalObservations,
           parts: formData.parts.map((part) => ({
