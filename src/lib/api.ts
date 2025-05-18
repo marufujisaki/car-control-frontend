@@ -1,5 +1,5 @@
-//export const serverUrl = "https://car-control-api.onrender.com";
-export const serverUrl = "http://localhost:8080";
+export const serverUrl = "https://car-control-api.onrender.com";
+//export const serverUrl = "http://localhost:8080";
 
 
 export async function getVehicleJobs(vehicleId: string) {
