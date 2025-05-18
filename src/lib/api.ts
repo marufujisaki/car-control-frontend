@@ -2,7 +2,7 @@
 export const serverUrl = "http://localhost:8080";
 
 
-export async function getUserJobs(vehicleId: string) {
+export async function getVehicleJobs(vehicleId: string) {
   try {
     const res = await fetch(`${serverUrl}/jobs/${vehicleId}`, {
       method: "GET",

@@ -56,7 +56,7 @@ import {
 import { LoginButton } from "@/components/login-button";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useMemo, useState } from "react";
-import { getUserJobs, deleteJob, updateJob, createJob } from "@/lib/api";
+import { deleteJob, updateJob, createJob, getVehicleJobs } from "@/lib/api";
 import { formatDate, parseDate } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 
@@ -131,7 +131,7 @@ export default function TableViewContent() {
 
   const loadJobs = async () => {
     if (!user || !vehicleId) return;
-    const jobsData = await getUserJobs(user.id || "");
+    const jobsData = await getVehicleJobs(vehicleId || "");
     if (jobsData) setJobs(jobsData);
   };
 
@@ -227,7 +227,7 @@ export default function TableViewContent() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-              <form onSubmit={(e) => handleSubmit(e, user?.id || "")}>
+              <form onSubmit={(e) => handleSubmit(e, vehicleId || "")}>
                 <DialogHeader>
                   <DialogTitle>
                     {editingJobId ? "Editar Trabajo" : "Agregar Nuevo Trabajo"}
